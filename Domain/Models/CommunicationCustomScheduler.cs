@@ -10,7 +10,7 @@
         public string? FrequencyType { get; set; }
         public string? Frequency { get; set; }
         public string MonthDays { get; set; }
-        public int? FrequencyValue { get; set; }
+        public int FrequencyValue { get; set; } = int.MaxValue;
         public int RepeatValue { get; set; } // Change from int? to int
         public bool IsActive { get; set; }
         public DateTime CreatedOn { get; set; }

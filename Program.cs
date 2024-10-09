@@ -18,6 +18,13 @@ builder.Services.AddQuartz(q =>
 {
     q.UseMicrosoftDependencyInjectionJobFactory();
 
+    //for App Crash
+    //q.UsePersistentStore(options =>
+    //{
+    //    options.UseSqlServer(ConnectionString); 
+    //});
+
+
     //var jobKey = new JobKey("SchedulerJob");
     //q.AddJob<SchedulerJobService>(opts => opts.WithIdentity(jobKey));
 
@@ -62,28 +69,39 @@ builder.Services.AddQuartz(q =>
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity($"SchedulerTrigger_{scheduler.SchedulerID}")
-                    .WithCronSchedule(Convert.ToString(scheduler.StartTimestamp))
+                    .StartAt(DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp)))
                     .UsingJobData(jobDataMap));
             }
             if (scheduler.FrequencyType == "Daily")
             {
                 DateTimeOffset startTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp));
                 DateTimeOffset endTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.EndTimestamp));
-                string cronExpression = $"0 0 {startTimestamp.Hour}/{scheduler.RepeatValue} * * ?";
+
+                int repeatValueInMinutes = scheduler.RepeatValue; // Repeat interval (in minutes), e.g., 1 minute
+                int maxExecutionsPerDay = scheduler.FrequencyValue; // Maximum executions per day, e.g., 100
+
+                // Add the job trigger dynamically
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity($"DailyTrigger_{scheduler.SchedulerID}")
-                    .WithCronSchedule(cronExpression)
-                    .StartAt(startTimestamp)
-                    .EndAt(endTimestamp)
-                    .UsingJobData(jobDataMap));
+                    .WithSimpleSchedule(x => x
+                        .WithIntervalInMinutes(repeatValueInMinutes)  // Repeat every x minutes (from DB)
+                        .WithRepeatCount(maxExecutionsPerDay - 1))    // Repeat (n-1) times, so it runs 'maxExecutionsPerDay' times
+                    .StartAt(startTimestamp)                          // Job starts at this time
+                    .EndAt(endTimestamp)                              // Job ends at this time
+                    .UsingJobData(jobDataMap));                       // Attach the serialized scheduler data as job data
             }
+
             if (scheduler.FrequencyType == "Weekly")
             {
                 var daysOfWeek = CronUtility.ConvertDaysOfWeek(scheduler.Frequency); // Convert "Mon.Wed" to "MON,WED"
                 DateTimeOffset startTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp));
                 DateTimeOffset endTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.EndTimestamp));
-                string cronExpression = $"0 0 {startTimestamp.Hour}/{scheduler.RepeatValue} ? * {daysOfWeek}";
+                
+                int startMinute = startTimestamp.Minute;
+                int startHour = startTimestamp.Hour;
+
+                string cronExpression = $"{startMinute}/{scheduler.RepeatValue} {startHour} ? * {daysOfWeek}";
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity($"WeeklyTrigger_{scheduler.SchedulerID}")
@@ -98,7 +116,9 @@ builder.Services.AddQuartz(q =>
                 var days = scheduler.MonthDays; // e.g., "1,14,25,30"
                 DateTimeOffset startTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp));
                 DateTimeOffset endTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.EndTimestamp));
+                //string cronExpression = $"0 0 {startTimestamp.Hour}/{scheduler.RepeatValue} {days} {months} ?";
                 string cronExpression = $"0 0 {startTimestamp.Hour}/{scheduler.RepeatValue} {days} {months} ?";
+
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity($"MonthlyTrigger_{scheduler.SchedulerID}")
@@ -116,11 +136,11 @@ builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+//if (app.Environment.IsDevelopment())
+//{
+//    app.UseSwagger();
+//    app.UseSwaggerUI();
+//}
 
 app.UseHttpsRedirection();
 
