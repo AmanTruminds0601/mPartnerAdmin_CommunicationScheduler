@@ -19,10 +19,10 @@ builder.Services.AddQuartz(q =>
     q.UseMicrosoftDependencyInjectionJobFactory();
 
     //for App Crash
-    q.UsePersistentStore(options =>
-    {
-        options.UseSqlServer(ConnectionString);
-    });
+    //q.UsePersistentStore(options =>
+    //{
+    //    options.UseSqlServer(ConnectionString);
+    //});
 
 
     //var jobKey = new JobKey("SchedulerJob");
@@ -32,7 +32,7 @@ builder.Services.AddQuartz(q =>
     using (var scope = builder.Services.BuildServiceProvider().CreateScope())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<mPartnerAdmin_CommunicationScheduler.SchedulerContext>();
-        var schedulers = dbContext.Communication_Custom_Scheduler.Where(s => s.IsActive).ToList();
+        var schedulers = dbContext.Communication_Custom_Scheduler.Where(s => s.IsActive && s.IsScheduled == false).ToList();
 
         foreach (var scheduler in schedulers)
         {
@@ -162,11 +162,17 @@ builder.Services.AddQuartz(q =>
                         .WithRepeatCount(scheduler.FrequencyValue - 1)) // Repeat 'FrequencyValue' times (excluding the initial trigger)
                     .UsingJobData(jobDataMap));
             }
+            
+            // Updating IsScheduled after scheduling
+            scheduler.IsScheduled = true;
+            dbContext.Communication_Custom_Scheduler.Update(scheduler);
+            dbContext.SaveChanges();
         }
     }
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+builder.Services.AddHostedService<SchedulerPollingService>();
 
 var app = builder.Build();
 

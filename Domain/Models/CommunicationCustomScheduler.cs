@@ -1,7 +1,10 @@
-﻿namespace mPartnerAdmin_CommunicationScheduler.Domain.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace mPartnerAdmin_CommunicationScheduler.Domain.Models
 {
     public class Communication_Custom_Scheduler
     {
+        [Key]
         public int SchedulerID { get; set; }
         public int ComID { get; set; }
         public string ChannelType { get; set; }

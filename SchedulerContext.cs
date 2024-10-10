@@ -20,7 +20,7 @@ namespace mPartnerAdmin_CommunicationScheduler
             //    .HasNoKey();
             modelBuilder.Entity<Communication_Custom_Scheduler>()
                 .ToTable("Communication_Custom_Scheduler", "mpadmin") // Specify schema
-                .HasNoKey();
+                .HasKey(e => e.SchedulerID); // Defining the primary key
 
             modelBuilder.Entity<CommunicationRunHistory>()
                 .ToTable("CommunicationRunHistory", "mpadmin") // Specify schema if necessary

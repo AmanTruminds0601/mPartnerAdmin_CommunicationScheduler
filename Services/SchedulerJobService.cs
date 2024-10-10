@@ -50,6 +50,12 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
                 case "Email": // Email
                     SendEmail(scheduler);
                     break;
+                case "Notification": // Notification
+                    SendNotification(scheduler);
+                    break;
+                case "Banner": // Banner
+                    SendBanner(scheduler);
+                    break;
             }
         }
 
@@ -67,13 +73,19 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
             // Code to send WhatsApp message
             Console.WriteLine("WhatsApp Job Triggered");
         }
-
-        private void SendEmail(Communication_Custom_Scheduler scheduler)
+        private void SendNotification(Communication_Custom_Scheduler scheduler)
         {
+            // Log the run to Communication_Run_History
             //LogRunHistory(scheduler);
-            // Code to send email
-            Console.WriteLine("Email Job Triggered");
-            SendMail("palak.agrawal@truminds.com", "naveena.kunjibettu@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Pookie", "");
+            // Code to send Notification
+            Console.WriteLine("Notification Job Triggered");
+        }
+        private void SendBanner(Communication_Custom_Scheduler scheduler)
+        {
+            // Log the run to Communication_Run_History
+            //LogRunHistory(scheduler);
+            // Code to send Banner
+            Console.WriteLine("Banner Job Triggered");
         }
 
         private void LogRunHistory(Communication_Custom_Scheduler scheduler)
@@ -93,7 +105,13 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
             _dbContext.CommunicationRunHistory.Add(history);
             _dbContext.SaveChanges();
         }
-
+        private void SendEmail(Communication_Custom_Scheduler scheduler)
+        {
+            //LogRunHistory(scheduler);
+            // Code to send email
+            Console.WriteLine("Email Job Triggered");
+            SendMail("palak.agrawal@truminds.com", "naveena.kunjibettu@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Pookie", "");
+        }
         private void GenerateMailAddress(MailAddressCollection mailID, string? tomailids)
         {
             if (!string.IsNullOrEmpty(tomailids) && tomailids != "not")

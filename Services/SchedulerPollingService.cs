@@ -53,15 +53,27 @@ public class SchedulerPollingService : BackgroundService
                         { "SchedulerData", Newtonsoft.Json.JsonConvert.SerializeObject(scheduler) }
                     };
                     var (cronTrigger, simpleTrigger) = CreateTriggers(scheduler, jobKey, jobDataMap);
+                    bool jobScheduled = false;
+
                     if (cronTrigger != null)
                     {
                         await quartzScheduler.ScheduleJob(CreateJobDetail(jobKey), cronTrigger);
+                        jobScheduled = true;
                     }
 
                     if (simpleTrigger != null)
                     {
                         await quartzScheduler.ScheduleJob(CreateJobDetail(jobKey), simpleTrigger);
+                        jobScheduled = true;
                     }
+                    if (jobScheduled)
+                    {
+                        scheduler.IsScheduled = true;
+                        dbContext.Communication_Custom_Scheduler.Update(scheduler);
+                        await dbContext.SaveChangesAsync();
+                        _logger.LogInformation($"Scheduler {scheduler.SchedulerID} marked as scheduled.");
+                    }
+
                     _logger.LogInformation($"New job scheduled: {scheduler.SchedulerID}");
                 }
             }
@@ -90,7 +102,7 @@ public class SchedulerPollingService : BackgroundService
                 .WithSimpleSchedule(x => x.WithRepeatCount(0))
                 .UsingJobData(jobDataMap)
                 .Build();
-        }        
+        }
         if (scheduler.FrequencyType == "Daily")
         {
             DateTimeOffset startTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp));
@@ -109,7 +121,7 @@ public class SchedulerPollingService : BackgroundService
                 .EndAt(endTimestamp)
                 .UsingJobData(jobDataMap)
                 .Build();
-        }        
+        }
         if (scheduler.FrequencyType == "Weekly")
         {
             // Get the days of the week from the "Mon.Wed" format to "MON,WED"
@@ -143,7 +155,7 @@ public class SchedulerPollingService : BackgroundService
                     .WithRepeatCount(scheduler.FrequencyValue - 1)) // Repeat 'FrequencyValue' times (since first run is included)
                 .UsingJobData(jobDataMap)
                 .Build();
-        }        
+        }
         if (scheduler.FrequencyType == "Monthly")
         {
             // Convert months and days into Cron compatible formats
