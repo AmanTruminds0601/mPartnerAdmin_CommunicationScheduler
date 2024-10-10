@@ -70,6 +70,7 @@ builder.Services.AddQuartz(q =>
                     .ForJob(jobKey)
                     .WithIdentity($"SchedulerTrigger_{scheduler.SchedulerID}")
                     .StartAt(DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp)))
+                    .WithSimpleSchedule(x => x.WithRepeatCount(0))
                     .UsingJobData(jobDataMap));
             }
             if (scheduler.FrequencyType == "Daily")
@@ -91,40 +92,73 @@ builder.Services.AddQuartz(q =>
                     .EndAt(endTimestamp)                              // Job ends at this time
                     .UsingJobData(jobDataMap));                       // Attach the serialized scheduler data as job data
             }
-
             if (scheduler.FrequencyType == "Weekly")
             {
+                // Get the days of the week from the "Mon.Wed" format to "MON,WED"
                 var daysOfWeek = CronUtility.ConvertDaysOfWeek(scheduler.Frequency); // Convert "Mon.Wed" to "MON,WED"
+
                 DateTimeOffset startTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp));
                 DateTimeOffset endTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.EndTimestamp));
-                
+
                 int startMinute = startTimestamp.Minute;
                 int startHour = startTimestamp.Hour;
 
-                string cronExpression = $"{startMinute}/{scheduler.RepeatValue} {startHour} ? * {daysOfWeek}";
+                // Construct a Cron expression for the start time on specific days (Not yet handling repetition)
+                string cronExpression = $"{startMinute} {startHour} ? * {daysOfWeek}";
+
+                // Adding the CronTrigger for the weekly schedule (this sets the job to start on the correct days)
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
-                    .WithIdentity($"WeeklyTrigger_{scheduler.SchedulerID}")
+                    .WithIdentity($"WeeklyCronTrigger_{scheduler.SchedulerID}")
                     .WithCronSchedule(cronExpression)
                     .StartAt(startTimestamp)
                     .EndAt(endTimestamp)
                     .UsingJobData(jobDataMap));
+
+                // SimpleSchedule for repetitions on each day the job is triggered
+                q.AddTrigger(opts => opts
+                    .ForJob(jobKey)
+                    .WithIdentity($"WeeklySimpleTrigger_{scheduler.SchedulerID}")
+                    .StartAt(startTimestamp) // Start at the start time
+                    .EndAt(endTimestamp) // End at the end time
+                    .WithSimpleSchedule(x => x
+                        .WithIntervalInMinutes(scheduler.RepeatValue) // Repeat every 'RepeatValue' minutes
+                        .WithRepeatCount(scheduler.FrequencyValue - 1)) // Repeat 'FrequencyValue' times (since first run is included)
+                    .UsingJobData(jobDataMap));
             }
             if (scheduler.FrequencyType == "Monthly")
             {
-                var months = CronUtility.ConvertMonths(scheduler.Frequency); // Convert "Jan,Jun,Oct" to "1,6,10"
-                var days = scheduler.MonthDays; // e.g., "1,14,25,30"
+                // Convert months and days into Cron compatible formats
+                var months = CronUtility.ConvertMonths(scheduler.Frequency); // Convert "Jan.Feb" to "JAN,FEB"
+                var monthDays = string.Join(",", scheduler.MonthDays.Split('.')); // Convert "1.15" to "1,15"
+
                 DateTimeOffset startTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.StartTimestamp));
                 DateTimeOffset endTimestamp = DateTimeOffset.Parse(Convert.ToString(scheduler.EndTimestamp));
-                //string cronExpression = $"0 0 {startTimestamp.Hour}/{scheduler.RepeatValue} {days} {months} ?";
-                string cronExpression = $"0 0 {startTimestamp.Hour}/{scheduler.RepeatValue} {days} {months} ?";
 
+                int startMinute = startTimestamp.Minute;
+                int startHour = startTimestamp.Hour;
+
+                // Cron expression to schedule the job to run on specific days of the month and months
+                string cronExpression = $"{startMinute} {startHour} {monthDays} {months} ?";
+
+                // Add the CronTrigger to start the job on specific days and months
                 q.AddTrigger(opts => opts
                     .ForJob(jobKey)
-                    .WithIdentity($"MonthlyTrigger_{scheduler.SchedulerID}")
+                    .WithIdentity($"MonthlyCronTrigger_{scheduler.SchedulerID}")
                     .WithCronSchedule(cronExpression)
                     .StartAt(startTimestamp)
                     .EndAt(endTimestamp)
+                    .UsingJobData(jobDataMap));
+
+                // SimpleSchedule for repetitions on the same day
+                q.AddTrigger(opts => opts
+                    .ForJob(jobKey)
+                    .WithIdentity($"MonthlySimpleTrigger_{scheduler.SchedulerID}")
+                    .StartAt(startTimestamp) // Start at the specified time
+                    .EndAt(endTimestamp) // End at the specified end time
+                    .WithSimpleSchedule(x => x
+                        .WithIntervalInMinutes(scheduler.RepeatValue) // Repeat every 'RepeatValue' minutes
+                        .WithRepeatCount(scheduler.FrequencyValue - 1)) // Repeat 'FrequencyValue' times (excluding the initial trigger)
                     .UsingJobData(jobDataMap));
             }
         }
