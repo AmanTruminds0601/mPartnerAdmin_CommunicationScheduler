@@ -19,10 +19,10 @@ builder.Services.AddQuartz(q =>
     q.UseMicrosoftDependencyInjectionJobFactory();
 
     //for App Crash
-    //q.UsePersistentStore(options =>
-    //{
-    //    options.UseSqlServer(ConnectionString); 
-    //});
+    q.UsePersistentStore(options =>
+    {
+        options.UseSqlServer(ConnectionString);
+    });
 
 
     //var jobKey = new JobKey("SchedulerJob");
@@ -126,6 +126,7 @@ builder.Services.AddQuartz(q =>
                         .WithRepeatCount(scheduler.FrequencyValue - 1)) // Repeat 'FrequencyValue' times (since first run is included)
                     .UsingJobData(jobDataMap));
             }
+
             if (scheduler.FrequencyType == "Monthly")
             {
                 // Convert months and days into Cron compatible formats
@@ -166,6 +167,7 @@ builder.Services.AddQuartz(q =>
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+builder.Services.AddHostedService<SchedulerPollingService>();
 
 var app = builder.Build();
 

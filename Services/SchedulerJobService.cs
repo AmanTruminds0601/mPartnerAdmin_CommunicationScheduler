@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using mPartnerAdmin_CommunicationScheduler.Domain.Models;
 using Quartz;
+using System.Net.Mail;
+using System.Net;
 
 namespace mPartnerAdmin_CommunicationScheduler.Services
 {
@@ -8,10 +10,12 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
     {
         private readonly SchedulerContext _dbContext;
         private readonly ILogger _logger;
-        public SchedulerJobService(ILogger<SchedulerJobService> logger, SchedulerContext dbContext)
+        private readonly IConfiguration _configuration;
+        public SchedulerJobService(ILogger<SchedulerJobService> logger, SchedulerContext dbContext, IConfiguration configuration)
         {
             _logger = logger;
             _dbContext = dbContext;
+            _configuration = configuration;
         }
 
         public async Task Execute(IJobExecutionContext context)
@@ -80,6 +84,7 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
             //LogRunHistory(scheduler);
             // Code to send email
             Console.WriteLine("Email Job Triggered");
+            SendMail("palak.agrawal@truminds.com", "naveena.kunjibettu@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Pookie", "");
         }
 
         private void LogRunHistory(Communication_Custom_Scheduler scheduler)
@@ -98,6 +103,60 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
 
             _dbContext.CommunicationRunHistory.Add(history);
             _dbContext.SaveChanges();
+        }
+
+        private void GenerateMailAddress(MailAddressCollection mailID, string? tomailids)
+        {
+            if (!string.IsNullOrEmpty(tomailids) && tomailids != "not")
+            {
+                var splitIDs = tomailids.Split(";");
+                foreach (var splitID in splitIDs)
+                {
+                    mailID.Add(splitID);
+                }
+            }
+        }
+        public void SendMail(string? tomailid, string? ccmailid, string? bccmailid, string? subject, string? mailbody, string? dispayname, string? attachments)
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            try
+            {
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)192 |
+                                        (SecurityProtocolType)768 | (SecurityProtocolType)3072;
+
+                MailMessage mMailMessage = new MailMessage();
+                mMailMessage.From = new MailAddress(_configuration["mailAdd"].ToString(), dispayname);
+                GenerateMailAddress(mMailMessage.To, tomailid);
+                GenerateMailAddress(mMailMessage.CC, ccmailid);
+                GenerateMailAddress(mMailMessage.Bcc, bccmailid);
+
+                mMailMessage.Subject = subject;
+                if (attachments.Length > 0)
+                {
+                    attachments = attachments.Replace("/", "\\").Replace("\\", "\\\\");
+                    var attachmentSplit = attachments.Split(new char[] { ',' });
+                    foreach (var attachment in attachmentSplit)
+                    {
+                        if (!string.IsNullOrEmpty(attachment.Trim()))
+                            mMailMessage.Attachments.Add(new Attachment(attachment));
+                    }
+                }
+
+                mMailMessage.Body = mailbody;
+                mMailMessage.IsBodyHtml = true;
+                mMailMessage.Priority = MailPriority.High;
+                SmtpClient smtp = new SmtpClient();
+                smtp.Host = "smtp.outlook.com";
+
+                smtp.Port = 587;
+                smtp.EnableSsl = true;
+                smtp.Credentials = new NetworkCredential(_configuration["mailAdd"].ToString(), _configuration["mailPass"].ToString());
+                smtp.Send(mMailMessage);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
     }
 }
