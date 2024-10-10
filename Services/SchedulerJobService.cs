@@ -21,17 +21,6 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
         public async Task Execute(IJobExecutionContext context)
         {
             _logger.LogInformation($"Job executed at: {DateTime.Now}");
-            //// Fetch active schedulers from the database
-            //var activeSchedulers = await _dbContext.CommunicationCustomSchedulers
-            //    .Where(s => s.IsActive && DateTime.Parse(s.StartTimestamp) <= DateTime.Now &&
-            //                (s.EndTimestamp == null || DateTime.Parse(s.EndTimestamp) >= DateTime.Now))
-            //    .ToListAsync();
-
-            //foreach (var scheduler in activeSchedulers)
-            //{
-            //    // Schedule based on FrequencyType (e.g., Daily, Weekly, etc.)
-            //    TriggerChannel(scheduler);
-            //}
 
             // Retrieve the scheduler from JobDataMap
             var schedulerData = context.MergedJobDataMap.GetString("SchedulerData");

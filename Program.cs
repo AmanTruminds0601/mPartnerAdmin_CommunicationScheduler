@@ -167,7 +167,6 @@ builder.Services.AddQuartz(q =>
 });
 
 builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
-builder.Services.AddHostedService<SchedulerPollingService>();
 
 var app = builder.Build();
 
