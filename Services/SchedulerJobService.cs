@@ -110,7 +110,7 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
             //LogRunHistory(scheduler);
             // Code to send email
             Console.WriteLine("Email Job Triggered");
-            SendMail("palak.agrawal@truminds.com", "naveena.kunjibettu@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Pookie", "");
+            SendMail("aman.kumar@truminds.com", "naveena.kunjibettu@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Aman", "");
         }
         private void GenerateMailAddress(MailAddressCollection mailID, string? tomailids)
         {

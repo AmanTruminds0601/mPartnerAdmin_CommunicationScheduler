@@ -19,11 +19,13 @@ builder.Services.AddQuartz(q =>
     q.UseMicrosoftDependencyInjectionJobFactory();
 
     //for App Crash
-    //q.UsePersistentStore(options =>
-    //{
-    //    options.UseSqlServer(ConnectionString);
-    //});
-
+    // Enable persistent store
+    q.UsePersistentStore(options =>
+    {
+        options.UseSqlServer(ConnectionString); // Using SQL Server for persistence
+        options.UseNewtonsoftJsonSerializer();  // Using JSON to serialize the job data
+        options.UseClustering();  // Enable clustering if you are running multiple instances of the app
+    });
 
     //var jobKey = new JobKey("SchedulerJob");
     //q.AddJob<SchedulerJobService>(opts => opts.WithIdentity(jobKey));
@@ -36,7 +38,7 @@ builder.Services.AddQuartz(q =>
 
         foreach (var scheduler in schedulers)
         {
-            var jobKey = new JobKey($"SchedulerJob_{scheduler.SchedulerID}"); 
+            var jobKey = new JobKey($"SchedulerJob_{scheduler.SchedulerID}");
             var triggerKey = new TriggerKey($"SchedulerTrigger_{scheduler.SchedulerID}");
 
             var jobDataMap = new JobDataMap
@@ -50,7 +52,7 @@ builder.Services.AddQuartz(q =>
                 // Remove inactive scheduler's job and trigger
                 var schedulerFactory = scope.ServiceProvider.GetRequiredService<ISchedulerFactory>();
                 var quartzScheduler = schedulerFactory.GetScheduler().Result;
-                
+
                 if (quartzScheduler.CheckExists(jobKey).Result)
                 {
                     quartzScheduler.DeleteJob(jobKey).Wait();
@@ -82,16 +84,16 @@ builder.Services.AddQuartz(q =>
                 int maxExecutionsPerDay = scheduler.FrequencyValue; // Maximum executions per day, e.g., 100
 
                 // Add the job trigger dynamically
-                q.AddTrigger(opts => opts
-                    .ForJob(jobKey)
+                    q.AddTrigger(opts => opts
+                        .ForJob(jobKey)
                     .WithIdentity($"DailyTrigger_{scheduler.SchedulerID}")
-                    .WithSimpleSchedule(x => x
+                        .WithSimpleSchedule(x => x
                         .WithIntervalInMinutes(repeatValueInMinutes)  // Repeat every x minutes (from DB)
                         .WithRepeatCount(maxExecutionsPerDay - 1))    // Repeat (n-1) times, so it runs 'maxExecutionsPerDay' times
                     .StartAt(startTimestamp)                          // Job starts at this time
                     .EndAt(endTimestamp)                              // Job ends at this time
                     .UsingJobData(jobDataMap));                       // Attach the serialized scheduler data as job data
-            }
+                }
             if (scheduler.FrequencyType == "Weekly")
             {
                 // Get the days of the week from the "Mon.Wed" format to "MON,WED"
@@ -107,13 +109,13 @@ builder.Services.AddQuartz(q =>
                 string cronExpression = $"{startMinute} {startHour} ? * {daysOfWeek}";
 
                 // Adding the CronTrigger for the weekly schedule (this sets the job to start on the correct days)
-                q.AddTrigger(opts => opts
-                    .ForJob(jobKey)
+                    q.AddTrigger(opts => opts
+                        .ForJob(jobKey)
                     .WithIdentity($"WeeklyCronTrigger_{scheduler.SchedulerID}")
                     .WithCronSchedule(cronExpression)
                     .StartAt(startTimestamp)
                     .EndAt(endTimestamp)
-                    .UsingJobData(jobDataMap));
+                        .UsingJobData(jobDataMap));
 
                 // SimpleSchedule for repetitions on each day the job is triggered
                 q.AddTrigger(opts => opts
@@ -162,7 +164,7 @@ builder.Services.AddQuartz(q =>
                         .WithRepeatCount(scheduler.FrequencyValue - 1)) // Repeat 'FrequencyValue' times (excluding the initial trigger)
                     .UsingJobData(jobDataMap));
             }
-            
+
             // Updating IsScheduled after scheduling
             scheduler.IsScheduled = true;
             dbContext.Communication_Custom_Scheduler.Update(scheduler);
