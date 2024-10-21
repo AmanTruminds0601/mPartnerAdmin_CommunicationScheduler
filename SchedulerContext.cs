@@ -24,10 +24,14 @@ namespace mPartnerAdmin_CommunicationScheduler
 
             modelBuilder.Entity<CommunicationRunHistory>()
                 .ToTable("CommunicationRunHistory", "mpadmin") // Specify schema if necessary
+                .HasNoKey();            
+            modelBuilder.Entity<PreProcessedCommunicationData>()
+                .ToTable("PreProcessed_Communication_Data", "mpadmin") // Specify schema if necessary
                 .HasNoKey();
         }
 
         public DbSet<Communication_Custom_Scheduler> Communication_Custom_Scheduler { get; set; }
         public DbSet<CommunicationRunHistory> CommunicationRunHistory { get; set; }
+        public DbSet<PreProcessedCommunicationData> PreProcessed_Communication_Data { get; set; }
     }
 }

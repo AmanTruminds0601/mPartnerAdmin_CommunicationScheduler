@@ -32,55 +32,78 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
 
             var scheduler = Newtonsoft.Json.JsonConvert.DeserializeObject<Communication_Custom_Scheduler>(schedulerData);
 
+            // Fetch preprocessed data from mpadmin.PreProcessed_Communication_Data
+            var preProcessedData = _dbContext.PreProcessed_Communication_Data
+                .Where(p => p.SchedulerID == scheduler.SchedulerID)
+                .ToList();
+
+            if (preProcessedData == null || preProcessedData.Count == 0)
+            {
+                Console.WriteLine($"No preprocessed data found for SchedulerID {scheduler.SchedulerID}");
+                return;
+            }
+
             // Trigger based on ChannelType
-            TriggerChannel(scheduler);
+            foreach (var data in preProcessedData)
+            {
+                TriggerChannel(scheduler, preProcessedData); // Pass the preprocessed data to the TriggerChannel method
+            }
         }
 
-        private void TriggerChannel(Communication_Custom_Scheduler scheduler)
+        private void TriggerChannel(Communication_Custom_Scheduler scheduler, List<PreProcessedCommunicationData> preProcessedData)
         {
             // Handle different channel types and send communication
             switch (scheduler.ChannelType)
             {
                 case "SMS": // SMS
-                    SendSMS(scheduler);
+                    SendSMS(scheduler, preProcessedData);
                     break;
                 case "WhatsApp": // WhatsApp
-                    SendWhatsAppMessage(scheduler);
+                    SendWhatsAppMessage(scheduler, preProcessedData);
                     break;
                 case "Email": // Email
-                    SendEmail(scheduler);
+                    SendEmail(scheduler, preProcessedData);
                     break;
                 case "Notification": // Notification
-                    SendNotification(scheduler);
+                    SendNotification(scheduler, preProcessedData);
                     break;
                 case "Banner": // Banner
-                    SendBanner(scheduler);
+                    SendBanner(scheduler, preProcessedData);
                     break;
             }
         }
 
-        private void SendSMS(Communication_Custom_Scheduler scheduler)
+        private void SendSMS(Communication_Custom_Scheduler scheduler, List<PreProcessedCommunicationData> preProcessedData)
         {
             // Log the run to Communication_Run_History
             //LogRunHistory(scheduler);
             // Code to send SMS
             Console.WriteLine("SMS Job Triggered");
+
+            foreach (var data in preProcessedData)
+            {
+                // Using preprocessed data to send SMS
+                string mobileNumber = data.UserMobileNo;
+                string messageContent = data.Content;
+
+                Console.WriteLine($"SMS sent to {mobileNumber} with content: {messageContent}");
+            }
         }
 
-        private void SendWhatsAppMessage(Communication_Custom_Scheduler scheduler)
+        private void SendWhatsAppMessage(Communication_Custom_Scheduler scheduler, List<PreProcessedCommunicationData> preProcessedData)
         {
             //LogRunHistory(scheduler);
             // Code to send WhatsApp message
             Console.WriteLine("WhatsApp Job Triggered");
         }
-        private void SendNotification(Communication_Custom_Scheduler scheduler)
+        private void SendNotification(Communication_Custom_Scheduler scheduler, List<PreProcessedCommunicationData> preProcessedData)
         {
             // Log the run to Communication_Run_History
             //LogRunHistory(scheduler);
             // Code to send Notification
             Console.WriteLine("Notification Job Triggered");
         }
-        private void SendBanner(Communication_Custom_Scheduler scheduler)
+        private void SendBanner(Communication_Custom_Scheduler scheduler, List<PreProcessedCommunicationData> preProcessedData)
         {
             // Log the run to Communication_Run_History
             //LogRunHistory(scheduler);
@@ -105,12 +128,21 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
             _dbContext.CommunicationRunHistory.Add(history);
             _dbContext.SaveChanges();
         }
-        private void SendEmail(Communication_Custom_Scheduler scheduler)
+        private void SendEmail(Communication_Custom_Scheduler scheduler, List<PreProcessedCommunicationData> preProcessedData)
         {
             //LogRunHistory(scheduler);
             // Code to send email
             Console.WriteLine("Email Job Triggered");
-            SendMail("aman.kumar@truminds.com", "naveena.kunjibettu@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Aman", "");
+            foreach (var data in preProcessedData)
+            {
+                string recipientEmail = data.UserEmail;
+                string subject = data.Subject;
+                string content = data.Content;
+                string cc = data.CC;
+                string bcc = data.BCC;
+            }
+
+            SendMail("aman.kumar@truminds.com", "palak.agrawal@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Aman", "");
         }
         private void GenerateMailAddress(MailAddressCollection mailID, string? tomailids)
         {

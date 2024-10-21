@@ -12,7 +12,7 @@ namespace mPartnerAdmin_CommunicationScheduler.Domain.Models
         public DateTime? EndTimestamp { get; set; } // Change from string? to DateTime?
         public string? FrequencyType { get; set; }
         public string? Frequency { get; set; }
-        public string MonthDays { get; set; }
+        public string? MonthDays { get; set; }
         public int FrequencyValue { get; set; } = int.MaxValue;
         public int RepeatValue { get; set; } // Change from int? to int
         public bool IsActive { get; set; }
@@ -21,5 +21,6 @@ namespace mPartnerAdmin_CommunicationScheduler.Domain.Models
         public DateTime? UpdatedOn { get; set; }
         public string? UpdatedBy { get; set; }
         public bool IsScheduled { get; set; } 
+        public string? ComStatus { get; set; } 
     }
 }
