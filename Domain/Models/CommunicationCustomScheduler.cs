@@ -22,5 +22,6 @@ namespace mPartnerAdmin_CommunicationScheduler.Domain.Models
         public string? UpdatedBy { get; set; }
         public bool IsScheduled { get; set; } 
         public string? ComStatus { get; set; } 
+        public string? ChannelID { get; set; } 
     }
 }
