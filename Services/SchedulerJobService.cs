@@ -18,6 +18,7 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
             _configuration = configuration;
         }
 
+        //For data preparation -> Handling tags, Maintaining retry counter, sent counter
         public async Task Execute(IJobExecutionContext context)
         {
             _logger.LogInformation($"Job executed at: {DateTime.Now}");
@@ -135,14 +136,16 @@ namespace mPartnerAdmin_CommunicationScheduler.Services
             Console.WriteLine("Email Job Triggered");
             foreach (var data in preProcessedData)
             {
-                string recipientEmail = data.UserEmail;
-                string subject = data.Subject;
-                string content = data.Content;
-                string cc = data.CC;
-                string bcc = data.BCC;
+                string? recipientEmail = data.UserEmail;
+                string? subject = data.Subject;
+                string? content = data.Content;
+                string? cc = data.CC;
+                string? bcc = data.BCC;
+
+                SendMail(recipientEmail, cc, bcc, subject, content, "Luminous", "");
             }
 
-            SendMail("aman.kumar@truminds.com", "palak.agrawal@truminds.com", "", "Test Scheduler Email", "Testing email through quartz scheduler", "Aman", "");
+            //SendMail("aman.kumar@truminds.com", "palak.agrawal@truminds.com", "", "Test Scheduler Email", "<p><i><strong><u>EMAIL BODY</u></strong></i></p>", "Luminous", "");
         }
         private void GenerateMailAddress(MailAddressCollection mailID, string? tomailids)
         {
